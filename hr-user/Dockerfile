@@ -1,4 +1,11 @@
+FROM maven:3.8.6-openjdk-11 as builder
+COPY . .
+RUN mvn dependency:resolve
+RUN mvn clean package -DskipTests=true
+
 FROM openjdk:11
 VOLUME /tmp
-ADD ./target/hr-user-0.0.1-SNAPSHOT.jar hr-user.jar
-ENTRYPOINT ["java","-jar","/hr-user.jar"]
+COPY --from=builder ./target/*.jar application.jar
+EXPOSE 8888
+
+ENTRYPOINT ["java", "-jar", "/application.jar"]

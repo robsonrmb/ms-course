@@ -1,0 +1,155 @@
+version: '3.9'
+
+services:
+  hr-worker-pg15:
+    image: postgres:15-alpine
+    restart: always
+    environment: 
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234567
+      POSTGRES_DB: db_hr_worker
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    networks:
+      - hr-net
+  
+  hr-user-pg15:
+    image: postgres:15-alpine
+    restart: always
+    environment: 
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234567
+      POSTGRES_DB: db_hr_user
+    ports:
+      - '5433:5432'
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    networks:
+      - hr-net
+  
+  pgadmin-worker-pg15:
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+    ports: 
+      - '15432:80'
+    depends_on:
+      - hr-worker-pg15
+    networks:
+      - hr-net
+  
+  pgadmin-user-pg15:
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+    ports: 
+      - '15433:80'
+    depends_on:
+      - hr-user-pg15
+    networks:
+      - hr-net
+  
+  hr-config-server:
+    build:
+      dockerfile: Dockerfile
+      context: ./hr-config-server
+    container_name: hr-config-server
+    restart: on-failure
+    ports:
+      - '8888:8888'
+    networks:
+      - hr-net
+    environment:
+      - "GITHUB_USER=robsonrmb"
+      - "GITHUB_PASS="
+  
+  hr-eureka-server:
+    build: 
+      dockerfile: Dockerfile
+      context: ./hr-eureka-server
+    container_name: hr-eureka-server
+    restart: on-failure
+    ports:
+      - '8761:8761'
+    depends_on:
+      - hr-config-server
+    networks:
+      - hr-net
+  
+  hr-api-gateway-zuul:
+    build: 
+      dockerfile: Dockerfile
+      context: ./hr-api-gateway-zuul
+    container_name: hr-api-gateway-zuul
+    restart: on-failure
+    ports:
+      - '8765:8765'
+    depends_on:
+      - hr-eureka-server
+    networks:
+      - hr-net
+  
+  hr-worker:
+    build:
+      dockerfile: Dockerfile
+      context: ./hr-worker
+    #container_name: hr-worker
+    restart: on-failure
+    ports:
+      - '8080'
+    depends_on:
+      - hr-worker-pg15
+      - hr-eureka-server
+    networks:
+      - hr-net
+  
+  hr-user:
+    build: 
+      dockerfile: Dockerfile
+      context: ./hr-user
+    #container_name: hr-user
+    restart: on-failure
+    ports:
+      - '8080'
+    depends_on:
+      - hr-user-pg15
+      - hr-eureka-server
+    networks:
+      - hr-net
+  
+  hr-payroll:
+    build: 
+      dockerfile: Dockerfile
+      context: ./hr-payroll
+    #container_name: hr-payroll
+    restart: on-failure
+    ports:
+      - '8080'
+    depends_on:
+      - hr-eureka-server
+    networks:
+      - hr-net
+  
+  hr-oauth:
+    build:
+      dockerfile: Dockerfile
+      context: ./hr-oauth
+    #container_name: hr-oauth
+    restart: on-failure
+    ports:
+      - '8080'
+    depends_on:
+      - hr-eureka-server
+    networks:
+      - hr-net
+
+      
+networks:
+  hr-net:
+    driver: bridge
