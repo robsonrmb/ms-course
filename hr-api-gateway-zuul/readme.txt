@@ -49,4 +49,7 @@ PASSOS PARA SUBIR A APLICAÇÃO COM O USO DO DOCKER
 
 	4.1 EXECUTANDO O DOCKER COMPOSE 
 	O comando abaixo inicializa todos os containers e deve ser rodado pelo terminal na pasta onde se encontra o arquivo docker-compose.yml.
-	- docker compose up
+	- docker compose up -d (liberando o terminal para conseguir subir outras instâncias de algum serviço)
+	
+	4.2 SUBINDO UMA NOVA INSTÂNCIA
+	- docker-compose up -d --scale hr-user=2 hr-user 
